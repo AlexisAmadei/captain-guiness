@@ -1,65 +1,149 @@
-import Image from "next/image";
+"use client";
+
+import dynamic from "next/dynamic";
+import { Box, Container, Heading, HStack, Image, Spinner, Stack, Text } from "@chakra-ui/react";
+import { useEffect, useMemo, useState } from "react";
+
+type Review = {
+  id: string;
+  rating: number;
+  barName: string | null;
+  comment: string | null;
+  photoUrl: string;
+  placeId: string | null;
+  createdAt: string | null;
+};
+
+const CommunityMap = dynamic(
+  () => import("@/components/CommunityMap").then((mod) => mod.CommunityMap),
+  {
+    ssr: false,
+    loading: () => (
+      <Stack h="full" align="center" justify="center" gap={3}>
+        <Spinner size="lg" color="blue.500" />
+        <Text fontSize="sm" color="gray.600">
+          Loading map...
+        </Text>
+      </Stack>
+    ),
+  },
+);
+
+function formatDate(value: string | null) {
+  if (!value) return "—";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+}
 
 export default function Home() {
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [loadingReviews, setLoadingReviews] = useState(true);
+  const [reviewsError, setReviewsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    const loadRecentReviews = async () => {
+      try {
+        setLoadingReviews(true);
+        setReviewsError(null);
+
+        const response = await fetch("/api/ratings?limit=20");
+        const payload = await response.json();
+
+        if (!response.ok) {
+          throw new Error(payload?.error ?? "Failed to load reviews");
+        }
+
+        if (!cancelled) {
+          setReviews(payload.reviews ?? []);
+        }
+      } catch (error) {
+        if (!cancelled) {
+          setReviewsError(error instanceof Error ? error.message : "Failed to load reviews");
+          setReviews([]);
+        }
+      } finally {
+        if (!cancelled) {
+          setLoadingReviews(false);
+        }
+      }
+    };
+
+    loadRecentReviews();
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const hasReviews = useMemo(() => reviews.length > 0, [reviews.length]);
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+    <Container maxW="container.md" py={4}>
+      <Stack gap={6}>
+        <Box h="72" borderWidth={1} borderColor="gray.200" borderRadius="lg" overflow="hidden">
+          <CommunityMap />
+        </Box>
+
+        <Stack gap={3}>
+          <Heading as="h1" size="md">
+            Recent reviews
+          </Heading>
+
+          {loadingReviews && (
+            <HStack justify="center" py={8}>
+              <Spinner size="md" color="blue.500" />
+            </HStack>
+          )}
+
+          {!loadingReviews && reviewsError && (
+            <Box p={4} borderRadius="md" bg="red.50" borderLeft="4px" borderColor="red.500">
+              <Text color="red.700">{reviewsError}</Text>
+            </Box>
+          )}
+
+          {!loadingReviews && !reviewsError && !hasReviews && (
+            <Box p={4} borderRadius="md" borderWidth={1} borderColor="gray.200">
+              <Text color="gray.600">No reviews yet.</Text>
+            </Box>
+          )}
+
+          {!loadingReviews && !reviewsError && hasReviews && (
+            <Stack gap={3}>
+              {reviews.map((review) => (
+                <Box key={review.id} borderWidth={1} borderColor="gray.200" borderRadius="md" p={3}>
+                  <HStack align="start" gap={3}>
+                    <Image
+                      src={review.photoUrl}
+                      alt="Review photo"
+                      boxSize="16"
+                      objectFit="cover"
+                      borderRadius="md"
+                    />
+                    <Stack gap={1} flex={1}>
+                      <HStack justify="space-between" align="start">
+                        <Text fontWeight="semibold">{review.barName || (review.placeId ? `Place ${review.placeId}` : "Unnamed place")}</Text>
+                        <Text color="gray.600">{review.rating.toFixed(1)} / 5</Text>
+                      </HStack>
+                      <Text color="gray.600" fontSize="sm">{formatDate(review.createdAt)}</Text>
+                      {review.comment ? (
+                        <Text fontSize="sm">{review.comment}</Text>
+                      ) : (
+                        <Text fontSize="sm" color="gray.500">No comment</Text>
+                      )}
+                    </Stack>
+                  </HStack>
+                </Box>
+              ))}
+            </Stack>
+          )}
+        </Stack>
+      </Stack>
+    </Container>
   );
 }
