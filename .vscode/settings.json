@@ -1,0 +1,16 @@
+{
+  "chat.mcp.serverSampling": {
+    "captain/.vscode/mcp.json: supabase": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-haiku-4.5",
+        "claude-code/claude-opus-4.5",
+        "claude-code/claude-opus-4.6",
+        "claude-code/claude-sonnet-4",
+        "claude-code/claude-sonnet-4.5",
+        "claude-code/claude-sonnet-4.6"
+      ]
+    }
+  },
+  "editor.tabSize": 2
+}

@@ -1,0 +1,15 @@
+{
+    "servers": {
+        "supabase": {
+            "type": "http",
+            "url": "https://mcp.supabase.com/mcp"
+        },
+        "chakra-ui": {
+            "command": "npx",
+            "args": [
+                "-y",
+                "@chakra-ui/react-mcp"
+            ]
+        }
+    }
+}
