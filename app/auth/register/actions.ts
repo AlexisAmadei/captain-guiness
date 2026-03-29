@@ -3,23 +3,7 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-
-function getEmailRedirectTo(headerStore: Headers) {
-  const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-  if (envSiteUrl) {
-    return `${envSiteUrl}/auth/callback`;
-  }
-
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (!host) {
-    return "http://localhost:3000/auth/callback";
-  }
-
-  return `${protocol}://${host}/auth/callback`;
-}
+import { buildAuthCallbackUrl, sanitizeNextPath } from "@/lib/auth/redirect";
 
 export async function register(formData: FormData) {
   const supabase = await createClient();
@@ -28,12 +12,13 @@ export async function register(formData: FormData) {
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
   const fullName = String(formData.get("fullName") ?? "").trim();
+  const next = sanitizeNextPath(String(formData.get("next") ?? ""), "/");
 
   const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
-      emailRedirectTo: getEmailRedirectTo(headerStore),
+      emailRedirectTo: buildAuthCallbackUrl(headerStore, next),
       data: {
         full_name: fullName,
       },

@@ -8,7 +8,7 @@ import {
   updateDisplayName,
   updateEmail,
   updatePassword,
-} from "@/app/profile/actions";
+} from "@/app/(protected)/profile/actions";
 
 function FormFeedback({
   status,

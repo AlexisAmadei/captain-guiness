@@ -15,11 +15,13 @@ import { register } from "./actions";
 type RegisterPageProps = {
   searchParams: Promise<{
     error?: string;
+    next?: string;
   }>;
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
+  const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : "/";
 
   return (
     <Card.Root>
@@ -41,6 +43,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
           <form action={register}>
             <Stack gap="3">
+              <Input type="hidden" name="next" value={safeNext} />
               <Field.Root required>
                 <Field.Label>Nom complet</Field.Label>
                 <Input name="fullName" type="text" />
@@ -60,7 +63,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
           <Text fontSize="sm" color="fg.muted">
             Déjà inscrit ?{" "}
             <Link asChild>
-              <NextLink href="/auth/login">Se connecter</NextLink>
+              <NextLink href={`/auth/login?next=${encodeURIComponent(safeNext)}`}>Se connecter</NextLink>
             </Link>
           </Text>
         </Stack>

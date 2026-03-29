@@ -5,11 +5,14 @@ import {
   ColorModeProvider,
   type ColorModeProviderProps,
 } from "./color-mode"
+import { EmotionCacheProvider } from "./emotion-cache"
 
 export function Provider(props: ColorModeProviderProps) {
   return (
-    <ChakraProvider value={defaultSystem}>
-      <ColorModeProvider {...props} />
-    </ChakraProvider>
+    <EmotionCacheProvider>
+      <ChakraProvider value={defaultSystem}>
+        <ColorModeProvider {...props} />
+      </ChakraProvider>
+    </EmotionCacheProvider>
   )
 }

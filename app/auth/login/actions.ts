@@ -3,22 +3,11 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { buildAuthCallbackUrl, sanitizeNextPath } from "@/lib/auth/redirect";
 
-function getSiteUrl(headerStore: Headers) {
-  const envSiteUrl = process.env.NEXT_PUBLIC_SITE_URL;
-
-  if (envSiteUrl) {
-    return envSiteUrl;
-  }
-
-  const host = headerStore.get("x-forwarded-host") ?? headerStore.get("host");
-  const protocol = headerStore.get("x-forwarded-proto") ?? "http";
-
-  if (!host) {
-    return "http://localhost:3000";
-  }
-
-  return `${protocol}://${host}`;
+function getSafeNextFromForm(formData: FormData, fallback = "/") {
+  const next = String(formData.get("next") ?? "");
+  return sanitizeNextPath(next, fallback);
 }
 
 export async function login(formData: FormData) {
@@ -26,6 +15,7 @@ export async function login(formData: FormData) {
 
   const email = String(formData.get("email") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const next = getSafeNextFromForm(formData, "/");
 
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
@@ -33,18 +23,18 @@ export async function login(formData: FormData) {
     redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
   }
 
-  redirect("/");
+  redirect(next);
 }
 
-export async function loginWithGithub() {
+export async function loginWithGithub(formData: FormData) {
   const supabase = await createClient();
   const headerStore = await headers();
-  const siteUrl = getSiteUrl(headerStore);
+  const next = getSafeNextFromForm(formData, "/");
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: "github",
     options: {
-      redirectTo: `${siteUrl}/auth/callback`,
+      redirectTo: buildAuthCallbackUrl(headerStore, next),
     },
   });
 
@@ -53,6 +43,52 @@ export async function loginWithGithub() {
   }
 
   redirect(data.url);
+}
+
+export async function loginWithMagicLink(formData: FormData) {
+  const supabase = await createClient();
+  const headerStore = await headers();
+
+  const email = String(formData.get("email") ?? "").trim();
+  const next = getSafeNextFromForm(formData, "/");
+
+  if (!email) {
+    redirect("/auth/login?error=Email%20is%20required");
+  }
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: {
+      emailRedirectTo: buildAuthCallbackUrl(headerStore, next),
+    },
+  });
+
+  if (error) {
+    redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/auth/login?message=Magic%20link%20sent.%20Check%20your%20email.");
+}
+
+export async function sendPasswordReset(formData: FormData) {
+  const supabase = await createClient();
+  const headerStore = await headers();
+
+  const email = String(formData.get("email") ?? "").trim();
+
+  if (!email) {
+    redirect("/auth/login?error=Email%20is%20required");
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: buildAuthCallbackUrl(headerStore, "/auth/reset-password"),
+  });
+
+  if (error) {
+    redirect(`/auth/login?error=${encodeURIComponent(error.message)}`);
+  }
+
+  redirect("/auth/login?message=Password%20reset%20email%20sent.");
 }
 
 export async function logout() {
