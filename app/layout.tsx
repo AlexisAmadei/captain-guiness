@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Provider } from "@/components/ui/provider";
-import { AppBar } from "@/components/AppBar";
-import { BottomNavigation } from "@/components/BottomNavigation";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -33,11 +31,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col">
         <Provider>
-          <AppBar />
-          <main style={{ minHeight: "calc(100dvh - 3.5rem)", paddingBottom: "4rem" }}>
-            {children}
-          </main>
-          <BottomNavigation />
+          {children}
         </Provider>
       </body>
     </html>

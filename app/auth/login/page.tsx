@@ -31,7 +31,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         <Text color="fg.muted">Accédez à votre compte</Text>
       </Card.Header>
       <Card.Body>
-        <Stack gap="5">
+        <Stack gap="4">
           {error ? (
             <Alert.Root status="error">
               <Alert.Indicator />
@@ -73,7 +73,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
             </Button>
           </form>
 
-          <form action={loginWithMagicLink}>
+          {/* <form action={loginWithMagicLink}>
             <Stack gap="3">
               <Input type="hidden" name="next" value={safeNext} />
               <Field.Root required>
@@ -84,9 +84,9 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Recevoir un magic link
               </Button>
             </Stack>
-          </form>
+          </form> */}
 
-          <form action={sendPasswordReset}>
+          {/* <form action={sendPasswordReset}>
             <Stack gap="3">
               <Field.Root required>
                 <Field.Label>Réinitialiser le mot de passe</Field.Label>
@@ -96,7 +96,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
                 Envoyer l&apos;email de réinitialisation
               </Button>
             </Stack>
-          </form>
+          </form> */}
 
           <Text fontSize="sm" color="fg.muted">
             Pas encore de compte ?{" "}
