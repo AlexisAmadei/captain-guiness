@@ -24,7 +24,6 @@ export default async function ProtectedLayout({
       <main style={{ flex: 1, paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}>
         {children}
       </main>
-      <BottomNavigation />
     </div>
   );
 }
