@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
       {
         id: string;
         placeId: string | null;
+        barName: string | null;
         latitude: number;
         longitude: number;
         sum: number;
