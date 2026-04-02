@@ -14,7 +14,7 @@ type RatingPayload = {
   comment?: string;
   pintPrice?: number | null;
   ratedAt: string;
-  photoUrl: string;
+  photoUrl?: string | null;
   latitude: number;
   longitude: number;
   placeId?: string;
@@ -25,7 +25,7 @@ type RecentRatingRow = {
   rating: number;
   bar_name: string | null;
   notes: string | null;
-  photo_url: string;
+  photo_url: string | null;
   place_id: string | null;
   created_at: string | null;
 };
@@ -142,8 +142,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid rated date" }, { status: 400 });
     }
 
-    if (!payload.photoUrl || typeof payload.photoUrl !== "string") {
-      return NextResponse.json({ error: "Missing photo URL" }, { status: 400 });
+    if (
+      payload.photoUrl !== null &&
+      payload.photoUrl !== undefined &&
+      typeof payload.photoUrl !== "string"
+    ) {
+      return NextResponse.json({ error: "Invalid photo URL" }, { status: 400 });
     }
 
     if (typeof payload.latitude !== "number" || typeof payload.longitude !== "number") {
@@ -189,7 +193,7 @@ export async function POST(request: NextRequest) {
       notes: payload.comment || null,
       pint_price: payload.pintPrice ?? null,
       rated_at: ratedAt.toISOString(),
-      photo_url: payload.photoUrl,
+      photo_url: payload.photoUrl ?? null,
       latitude: payload.latitude,
       longitude: payload.longitude,
       place_id: payload.placeId || null,

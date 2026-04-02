@@ -8,6 +8,7 @@ type RatingRow = {
   id: string;
   user_id: string;
   rating: number;
+  bar_name: string | null;
   latitude: number;
   longitude: number;
   place_id: string | null;
@@ -17,6 +18,7 @@ type RatingRow = {
 type MapPoint = {
   id: string;
   placeId: string | null;
+  barName: string | null;
   name: string;
   latitude: number;
   longitude: number;
@@ -70,7 +72,7 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("ratings")
-      .select("id,user_id,rating,latitude,longitude,place_id,created_at")
+      .select("id,user_id,rating,bar_name,latitude,longitude,place_id,created_at")
       .order("created_at", { ascending: false })
       .limit(5000);
 
@@ -107,6 +109,7 @@ export async function GET(request: NextRequest) {
         grouped.set(key, {
           id: key,
           placeId: row.place_id,
+          barName: row.bar_name,
           latitude: row.latitude,
           longitude: row.longitude,
           sum: row.rating,
@@ -122,6 +125,10 @@ export async function GET(request: NextRequest) {
       current.sum += row.rating;
       current.count = nextCount;
 
+      if (!current.barName && row.bar_name) {
+        current.barName = row.bar_name;
+      }
+
       if (row.created_at && (!current.lastRatedAt || row.created_at > current.lastRatedAt)) {
         current.lastRatedAt = row.created_at;
       }
@@ -130,7 +137,8 @@ export async function GET(request: NextRequest) {
     const points: MapPoint[] = Array.from(grouped.values()).map((point) => ({
       id: point.id,
       placeId: point.placeId,
-      name: point.placeId ? `Lieu ${point.placeId}` : "Lieu sans identifiant",
+      barName: point.barName,
+      name: point.barName ?? (point.placeId ? `Lieu ${point.placeId}` : "Lieu sans identifiant"),
       latitude: point.latitude,
       longitude: point.longitude,
       averageRating: Number((point.sum / point.count).toFixed(2)),

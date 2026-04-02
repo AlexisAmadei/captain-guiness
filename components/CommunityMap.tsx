@@ -1,6 +1,8 @@
 "use client";
 
 import { Box, Button, HStack, Spinner, Stack, Text } from "@chakra-ui/react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { Drawer } from "vaul";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
@@ -80,7 +82,7 @@ function pointsToGeoJson(points: MapPoint | MapPoint[]) {
 
 export function CommunityMap() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
 
   const [scope, setScope] = useState<Scope>("all");
   const [points, setPoints] = useState<MapPoint[]>([]);
@@ -91,12 +93,11 @@ export function CommunityMap() {
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [isRecentering, setIsRecentering] = useState(false);
 
-  const maptilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
+  const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
 
   const mapStyleUrl = useMemo(() => {
-    if (!maptilerKey) return "";
-    return `https://api.maptiler.com/maps/streets-v2/style.json?key=${maptilerKey}`;
-  }, [maptilerKey]);
+    return "mapbox://styles/mapbox/streets-v12";
+  }, []);
 
   const loadMapData = useCallback(async (nextScope: Scope) => {
     try {
@@ -125,19 +126,18 @@ export function CommunityMap() {
   }, [scope, loadMapData]);
 
   useEffect(() => {
-    if (!mapStyleUrl) {
-      setError("Clé MapTiler manquante");
+    if (!mapboxToken) {
+      setError("Clé Mapbox manquante");
       return;
     }
 
     let removed = false;
 
-    const initializeMap = async () => {
+    const initializeMap = () => {
       if (!mapContainerRef.current || mapRef.current) return;
 
-      const maplibre = await import("maplibre-gl");
-
-      const map = new maplibre.Map({
+      const map = new mapboxgl.Map({
+        accessToken: mapboxToken,
         container: mapContainerRef.current,
         style: mapStyleUrl,
         center: DEFAULT_CENTER,
@@ -145,7 +145,7 @@ export function CommunityMap() {
       });
 
       mapRef.current = map;
-      map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
 
       map.on("load", () => {
         if (removed) return;
@@ -214,8 +214,16 @@ export function CommunityMap() {
           const clusterId = feature.properties?.cluster_id;
           if (typeof clusterId !== "number") return;
 
-          const source = map.getSource(SOURCE_ID) as import("maplibre-gl").GeoJSONSource;
-          const zoom = await source.getClusterExpansionZoom(clusterId);
+          const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource;
+          const zoom = await new Promise<number>((resolve, reject) => {
+            source.getClusterExpansionZoom(clusterId, (expansionError, expansionZoom) => {
+              if (expansionError || typeof expansionZoom !== "number") {
+                reject(expansionError ?? new Error("Unable to expand cluster"));
+                return;
+              }
+              resolve(expansionZoom);
+            });
+          });
           if (!feature.geometry || feature.geometry.type !== "Point") return;
 
           map.easeTo({
@@ -263,13 +271,13 @@ export function CommunityMap() {
         mapRef.current = null;
       }
     };
-  }, [mapStyleUrl]);
+  }, [mapboxToken, mapStyleUrl]);
 
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !map.getSource(SOURCE_ID)) return;
 
-    const source = map.getSource(SOURCE_ID) as import("maplibre-gl").GeoJSONSource;
+    const source = map.getSource(SOURCE_ID) as mapboxgl.GeoJSONSource;
     source.setData(pointsToGeoJson(points));
   }, [points]);
 

@@ -1,6 +1,8 @@
 "use client";
 
 import { Box, Spinner, Stack, Text } from "@chakra-ui/react";
+import mapboxgl from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 import { useEffect, useRef, useState } from "react";
 
 type LocationPinPickerProps = {
@@ -14,7 +16,7 @@ const DEFAULT_ZOOM = 12;
 
 export function LocationPinPicker({ latitude, longitude, onSelect }: LocationPinPickerProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<import("maplibre-gl").Map | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
   const onSelectRef = useRef(onSelect);
 
   const [loading, setLoading] = useState(true);
@@ -25,9 +27,9 @@ export function LocationPinPicker({ latitude, longitude, onSelect }: LocationPin
   }, [onSelect]);
 
   useEffect(() => {
-    const maptilerKey = process.env.NEXT_PUBLIC_MAPTILER_KEY;
-    if (!maptilerKey) {
-      setError("Map is unavailable (missing NEXT_PUBLIC_MAPTILER_KEY)");
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_ACCESS_TOKEN ?? process.env.NEXT_PUBLIC_MAPBOX_TOKEN;
+    if (!mapboxToken) {
+      setError("Map is unavailable (missing NEXT_PUBLIC_MAPBOX_TOKEN)");
       setLoading(false);
       return;
     }
@@ -36,21 +38,20 @@ export function LocationPinPicker({ latitude, longitude, onSelect }: LocationPin
 
     const initializeMap = async () => {
       if (!mapContainerRef.current || mapRef.current) return;
-
-      const maplibre = await import("maplibre-gl");
       const center: [number, number] =
         latitude !== null && longitude !== null
           ? [longitude, latitude]
           : DEFAULT_CENTER;
 
-      const map = new maplibre.Map({
+      const map = new mapboxgl.Map({
+        accessToken: mapboxToken,
         container: mapContainerRef.current,
-        style: `https://api.maptiler.com/maps/streets-v2/style.json?key=${maptilerKey}`,
+        style: "mapbox://styles/mapbox/streets-v12",
         center,
         zoom: latitude !== null && longitude !== null ? 14 : DEFAULT_ZOOM,
       });
 
-      map.addControl(new maplibre.NavigationControl({ showCompass: false }), "top-right");
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), "top-right");
 
       const emitCenterCoordinates = () => {
         const mapCenter = map.getCenter();

@@ -17,6 +17,7 @@ export function BottomNavigation() {
       borderColor="gray.200"
       shadow="md"
       zIndex={10}
+      pb="env(safe-area-inset-bottom)"
     >
       <HStack
         h="16"
