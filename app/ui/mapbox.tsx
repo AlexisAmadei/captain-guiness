@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { FOCUS_MAP_POINT_EVENT, type FocusMapPointDetail } from '@/lib/map/events';
 
 type MapPoint = {
   id: string;
@@ -62,6 +63,30 @@ export default function Map() {
 
     const popup = new mapboxgl.Popup({ closeButton: false, closeOnClick: true })
 
+    const focusMapPoint = (point: FocusMapPointDetail) => {
+      const coordinates: [number, number] = [point.longitude, point.latitude]
+
+      map.easeTo({
+        center: coordinates,
+        zoom: Math.max(map.getZoom(), 14),
+        duration: 700,
+        essential: true,
+      })
+
+      popup
+        .setLngLat(coordinates)
+        .setHTML(`<div style="color:#000;"><strong>${point.name}</strong><br/>${point.averageRating.toFixed(2)} / 5 (${point.ratingCount})</div>`)
+        .addTo(map)
+    }
+
+    const handleFocusEvent = (event: Event) => {
+      const { detail } = event as CustomEvent<FocusMapPointDetail>
+      if (!detail) return
+      focusMapPoint(detail)
+    }
+
+    window.addEventListener(FOCUS_MAP_POINT_EVENT, handleFocusEvent)
+
     map.on('load', () => {
       map.addSource(SOURCE_ID, {
         type: 'geojson',
@@ -107,15 +132,14 @@ export default function Map() {
         const average = Number(feature.properties?.averageRating ?? 0)
         const count = Number(feature.properties?.ratingCount ?? 0)
 
-        map.easeTo({
-          center: coordinates,
-          duration: 700,
+        focusMapPoint({
+          id: String(feature.properties?.id ?? ''),
+          name: barName,
+          latitude: coordinates[1],
+          longitude: coordinates[0],
+          averageRating: average,
+          ratingCount: count,
         })
-
-        popup
-          .setLngLat(coordinates)
-          .setHTML(`<div style="color:#000;"><strong>${barName}</strong><br/>${average.toFixed(2)} / 5 (${count})</div>`)
-          .addTo(map)
       })
 
       fetch('/api/ratings/map?scope=all')
@@ -144,6 +168,7 @@ export default function Map() {
     resizeObserver.observe(mapContainerRef.current)
 
     return () => {
+      window.removeEventListener(FOCUS_MAP_POINT_EVENT, handleFocusEvent)
       resizeObserver.disconnect()
       popup.remove()
       mapRef.current?.remove()

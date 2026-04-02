@@ -45,7 +45,15 @@ export function PhotoCapture({ onPhotoCapture, onClear }: PhotoCaptureProps) {
   };
 
   return (
-    <Box>
+    <Box
+      borderWidth="1px"
+      borderStyle="dashed"
+      borderColor="app.border"
+      bg="app.surface"
+      rounded="panel"
+      p={4}
+      shadow="soft"
+    >
       <input
         ref={inputRef}
         type="file"
@@ -61,15 +69,16 @@ export function PhotoCapture({ onPhotoCapture, onClear }: PhotoCaptureProps) {
             src={preview}
             alt="Captured photo"
             w="100%"
-            h="300px"
+            h={{ base: "220px", md: "280px" }}
             objectFit="cover"
-            borderRadius="md"
+            rounded="cloud"
             mb={3}
+            shadow="soft"
           />
           <HStack>
             <Button
               flex={1}
-              colorScheme="blue"
+              colorPalette="brand"
               onClick={handleCapture}
             >
               Retake
@@ -86,13 +95,23 @@ export function PhotoCapture({ onPhotoCapture, onClear }: PhotoCaptureProps) {
       ) : (
         <Button
           w="100%"
-          h="200px"
-          colorScheme="blue"
+          h={{ base: "180px", md: "220px" }}
+          variant="outline"
+          borderColor="app.border"
+          bg="app.surfaceSolid"
+          color="app.fg"
           onClick={handleCapture}
           flexDirection="column"
           gap={3}
+          rounded="cloud"
+          shadow="sm"
+          _hover={{
+            transform: "translateY(-1px)",
+            shadow: "soft",
+            borderColor: "app.accent",
+          }}
         >
-          <Icon fontSize="3xl" color="white">
+          <Icon fontSize="3xl" color="app.accent">
             <BiCamera />
           </Icon>
           <Box as="span" fontSize="md">

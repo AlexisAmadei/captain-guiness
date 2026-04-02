@@ -10,6 +10,7 @@ import {
   Stack,
   Text,
 } from "@chakra-ui/react";
+import { FOCUS_MAP_POINT_EVENT, type FocusMapPointDetail } from "@/lib/map/events";
 import { useRouter } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
 import { LuArrowUpRight, LuChevronDown, LuPlus, LuSparkles, LuStar } from "react-icons/lu";
@@ -18,6 +19,8 @@ type ReviewPoint = {
   id: string;
   placeId: string | null;
   name: string;
+  latitude: number;
+  longitude: number;
   averageRating: number;
   ratingCount: number;
   lastRatedAt: string | null;
@@ -117,6 +120,19 @@ export function ReviewPill() {
     () => reviews.reduce((sum, review) => sum + review.ratingCount, 0),
     [reviews],
   );
+
+  const focusPointOnMap = (review: ReviewPoint) => {
+    const detail: FocusMapPointDetail = {
+      id: review.id,
+      name: review.name,
+      latitude: review.latitude,
+      longitude: review.longitude,
+      averageRating: review.averageRating,
+      ratingCount: review.ratingCount,
+    };
+
+    window.dispatchEvent(new CustomEvent(FOCUS_MAP_POINT_EVENT, { detail }));
+  };
 
   const topReview = reviews[0];
 
@@ -252,6 +268,7 @@ export function ReviewPill() {
             {reviews.map((review, index) => (
               <HStack
                 key={review.id}
+                as="button"
                 align="center"
                 justify="space-between"
                 gap="3"
@@ -259,6 +276,13 @@ export function ReviewPill() {
                 py="2.5"
                 borderRadius="xl"
                 bg={index === 0 ? "blue.50" : "bg.subtle"}
+                cursor="pointer"
+                textAlign="left"
+                transition="background-color 120ms ease"
+                _hover={{ bg: index === 0 ? "blue.100" : "bg.muted" }}
+                _focusVisible={{ outline: "2px solid", outlineColor: "blue.500", outlineOffset: "2px" }}
+                onClick={() => focusPointOnMap(review)}
+                aria-label={`Centrer la carte sur ${review.name}`}
               >
                 <HStack gap="3" minW={0} flex="1">
                   <Box

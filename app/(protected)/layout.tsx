@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AppBar } from "@/components/AppBar";
-import { BottomNavigation } from "@/components/BottomNavigation";
 
 export default async function ProtectedLayout({
   children,

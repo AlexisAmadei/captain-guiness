@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, HStack, Icon, Menu, Portal, Text } from "@chakra-ui/react";
+import { Box, Button, HStack, Icon, Menu, Portal, Text, VStack } from "@chakra-ui/react";
 import Link from "next/link";
 import { BiMenu } from "react-icons/bi";
 import { logout } from "@/app/auth/login/actions";
@@ -18,36 +18,46 @@ export function AppBar({ title = "Captain" }: AppBarProps) {
     <Box
       position="sticky"
       top={0}
-      bg="white"
+      bg="app.surface"
+      backdropFilter="blur(20px)"
       borderBottomWidth={1}
-      borderColor="gray.200"
-      shadow="sm"
+      borderColor="app.border"
+      shadow="soft"
       zIndex={10}
     >
       <HStack
-        h="14"
-        px={4}
+        h="16"
+        px={{ base: 4, md: 6 }}
         justify="space-between"
+        maxW="7xl"
+        mx="auto"
       >
-        <Text fontSize="lg" fontWeight="bold" color="blue.600">
-          {title}
-        </Text>
+        <VStack align="start" gap={0}>
+          <Text fontSize="xs" fontWeight="semibold" letterSpacing="0.24em" textTransform="uppercase" color="app.subtle">
+            Captain
+          </Text>
+          <Text fontSize="lg" fontWeight="semibold" color="app.fg">
+            {title}
+          </Text>
+        </VStack>
         <Menu.Root positioning={{ placement: "bottom-end" }}>
           <Menu.Trigger asChild>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              borderRadius="full"
-              p={0}
+              rounded="full"
+              px={3}
+              borderColor="app.border"
+              bg="app.surfaceSolid"
             >
-              <Icon fontSize="lg" color="gray.600">
+              <Icon fontSize="lg" color="app.fg">
                 <BiMenu />
               </Icon>
             </Button>
           </Menu.Trigger>
           <Portal>
             <Menu.Positioner>
-              <Menu.Content>
+              <Menu.Content bg="app.surfaceSolid" borderColor="app.border" shadow="lifted" rounded="xl">
                 <Menu.Item value="profile" asChild>
                   <Link href="/settings/profile">Profile</Link>
                 </Menu.Item>

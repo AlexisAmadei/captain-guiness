@@ -1,6 +1,6 @@
 "use client";
 
-import { Box, Button, Container, Dialog, Field, Heading, HStack, Input, Portal, Spinner, Stack, Text, Textarea } from "@chakra-ui/react";
+import { Badge, Box, Button, Container, Dialog, Field, Heading, HStack, Input, Portal, SimpleGrid, Spinner, Stack, Text } from "@chakra-ui/react";
 import { useRouter } from "next/navigation";
 import { type SyntheticEvent, useEffect, useState } from "react";
 import { PhotoCapture } from "@/components/PhotoCapture";
@@ -46,6 +46,40 @@ async function getResponseErrorMessage(response: Response, fallbackMessage: stri
   return fallbackMessage;
 }
 
+function InfoCard({
+  title,
+  description,
+  children,
+}: Readonly<{
+  title: string;
+  description: string;
+  children: React.ReactNode;
+}>) {
+  return (
+    <Box
+      rounded="panel"
+      borderWidth="1px"
+      borderColor="app.border"
+      bg="app.surface"
+      backdropFilter="blur(18px)"
+      shadow="soft"
+      p={{ base: 5, md: 6 }}
+    >
+      <Stack gap={4}>
+        <Box>
+          <Heading as="h2" size="md" color="app.fg" mb={1}>
+            {title}
+          </Heading>
+          <Text fontSize="sm" color="app.muted">
+            {description}
+          </Text>
+        </Box>
+        {children}
+      </Stack>
+    </Box>
+  );
+}
+
 export default function RatePage() {
   const router = useRouter();
   const { latitude, longitude, loading: geoLoading, error: geoError } = useGeolocation();
@@ -61,12 +95,8 @@ export default function RatePage() {
   });
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [barName, setBarName] = useState("");
-  const [comment, setComment] = useState("");
   const [pintPrice, setPintPrice] = useState("");
-  const [manualCoordinates, setManualCoordinates] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [manualCoordinates, setManualCoordinates] = useState<{ latitude: number; longitude: number } | null>(null);
   const [selectedPlaceId, setSelectedPlaceId] = useState<string | null>(null);
   const [nearbyPlaces, setNearbyPlaces] = useState<NearbyPlace[]>([]);
   const [loadingNearbyPlaces, setLoadingNearbyPlaces] = useState(false);
@@ -75,12 +105,9 @@ export default function RatePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const normalizedAutoLatitude =
-    typeof latitude === "number" && Number.isFinite(latitude) ? latitude : null;
-  const normalizedAutoLongitude =
-    typeof longitude === "number" && Number.isFinite(longitude) ? longitude : null;
+  const normalizedAutoLatitude = typeof latitude === "number" && Number.isFinite(latitude) ? latitude : null;
+  const normalizedAutoLongitude = typeof longitude === "number" && Number.isFinite(longitude) ? longitude : null;
 
-  // Manual/place selection should override auto geolocation when the user chooses a specific place.
   const selectedLatitude = manualCoordinates?.latitude ?? normalizedAutoLatitude ?? null;
   const selectedLongitude = manualCoordinates?.longitude ?? normalizedAutoLongitude ?? null;
   const hasValidSelectedCoordinates =
@@ -133,8 +160,6 @@ export default function RatePage() {
     fetchNearbyPlaces();
   }, [isLocationDialogOpen, selectedLatitude, selectedLongitude]);
 
-  const maxCommentLength = 500;
-
   const handlePhotoCapture = (file: File) => {
     setPhotoFile(file);
   };
@@ -147,7 +172,6 @@ export default function RatePage() {
     e.preventDefault();
     setError(null);
 
-    // Validate form
     if (criteria.overall === 0) {
       setError("Overall rating is required");
       return;
@@ -169,11 +193,6 @@ export default function RatePage() {
 
     if (!optionalCriteria.every(isValidOptionalRating)) {
       setError("Optional criteria must be empty or between 1 and 5 in 0.5 steps");
-      return;
-    }
-
-    if (comment.length > maxCommentLength) {
-      setError(`Comment cannot exceed ${maxCommentLength} characters`);
       return;
     }
 
@@ -205,7 +224,6 @@ export default function RatePage() {
       let imageUrl: string | null = null;
 
       if (photoFile) {
-        // Upload the photo only when provided.
         const compressedPhoto = await compressImage(photoFile);
 
         const formData = new FormData();
@@ -230,7 +248,6 @@ export default function RatePage() {
         imageUrl = uploadData.url;
       }
 
-      // Submit the rating
       const ratingResponse = await fetch("/api/ratings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -243,7 +260,7 @@ export default function RatePage() {
           presentationRating: criteria.presentation || null,
           valueForMoneyRating: criteria.valueForMoney || null,
           barName: trimmedBarName || null,
-          comment,
+          comment: null,
           pintPrice: parsedPrice,
           ratedAt: new Date().toISOString(),
           photoUrl: imageUrl,
@@ -258,8 +275,8 @@ export default function RatePage() {
       }
 
       router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "An error occurred");
+    } catch (submitError) {
+      setError(submitError instanceof Error ? submitError.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -267,289 +284,353 @@ export default function RatePage() {
 
   if (geoLoading) {
     return (
-      <Container maxW="container.sm" py={8}>
-        <Stack align="center" gap={4}>
-          <Spinner size="lg" color="blue.500" />
-          <Text>Loading your location...</Text>
+      <Container maxW="container.md" py={{ base: 6, md: 12 }}>
+        <Stack align="center" justify="center" minH="40vh" gap={4}>
+          <Spinner size="lg" color="brand.500" />
+          <Text color="app.muted">Loading your location...</Text>
         </Stack>
       </Container>
     );
   }
 
   return (
-    <Container maxW="container.sm" py={8}>
-      <Stack gap={8}>
-        <Heading as="h1" size="lg">
-          Rate a place
-        </Heading>
-
-        {geoError && (
-          <Box bg="red.50" p={4} borderRadius="md" borderLeft="4px" borderColor="red.500">
-            <Text color="red.700">{geoError}</Text>
-          </Box>
-        )}
-
-        {error && (
-          <Box bg="red.50" p={4} borderRadius="md" borderLeft="4px" borderColor="red.500">
-            <Text color="red.700">{error}</Text>
-          </Box>
-        )}
-
-        <form onSubmit={handleSubmit}>
-          <Stack gap={6}>
-            {/* Bar Name */}
-            <Field.Root>
-              <Field.Label>Nom du bar</Field.Label>
-              <Input
-                placeholder="Ex: Le Vieux Port"
-                value={barName}
-                maxLength={120}
-                onChange={(e) => setBarName(e.target.value)}
-              />
-            </Field.Root>
-
-            {/* 5 Optional Criteria */}
-            <Field.Root>
-              <Field.Label>Goût</Field.Label>
-              <StarRating
-                value={criteria.taste}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, taste: value }))}
-
-              />
-            </Field.Root>
-
-            <Field.Root>
-              <Field.Label>Mousse</Field.Label>
-              <StarRating
-                value={criteria.foam}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, foam: value }))}
-
-              />
-            </Field.Root>
-
-            <Field.Root>
-              <Field.Label>Crémeuse</Field.Label>
-              <StarRating
-                value={criteria.creamy}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, creamy: value }))}
-
-              />
-            </Field.Root>
-
-            <Field.Root>
-              <Field.Label>Température</Field.Label>
-              <StarRating
-                value={criteria.temperature}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, temperature: value }))}
-
-              />
-            </Field.Root>
-
-            <Field.Root>
-              <Field.Label>Présentation</Field.Label>
-              <StarRating
-                value={criteria.presentation}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, presentation: value }))}
-
-              />
-            </Field.Root>
-
-            <Field.Root>
-              <Field.Label>Rapport qualité/prix</Field.Label>
-              <StarRating
-                value={criteria.valueForMoney}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, valueForMoney: value }))}
-
-              />
-            </Field.Root>
-
-            {/* General Rating */}
-            <Field.Root required>
-              <Field.Label>
-                Note générale <Field.RequiredIndicator />
-              </Field.Label>
-              <StarRating
-                value={criteria.overall}
-                onChange={(value) => setCriteria((prev) => ({ ...prev, overall: value }))}
-
-              />
-            </Field.Root>
-
-            {/* Photo Capture */}
-            <Field.Root>
-              <Field.Label>
-                Photo (optional)
-              </Field.Label>
-              <PhotoCapture onPhotoCapture={handlePhotoCapture} onClear={handleClearPhoto} />
-            </Field.Root>
-
-            {/* Comment */}
-            {/* <Field.Root>
-              <Field.Label>Commentaire</Field.Label>
-              <Textarea
-                placeholder="Add any additional comments..."
-                value={comment}
-                maxLength={maxCommentLength}
-                onChange={(e) => setComment(e.target.value)}
-                rows={4}
-              />
-              <Text fontSize="xs" color="gray.500" textAlign="right" mt={1}>
-                {comment.length}/{maxCommentLength}
+    <Box position="relative" overflow="hidden">
+      <Box
+        position="absolute"
+        inset={0}
+        pointerEvents="none"
+        background="radial-gradient(circle at 12% 12%, rgba(255,255,255,0.72), transparent 30%), radial-gradient(circle at 88% 18%, rgba(224, 143, 30, 0.14), transparent 28%)"
+      />
+      <Container maxW="container.lg" py={{ base: 6, md: 10 }} position="relative">
+        <Stack gap={6}>
+          <Box
+            rounded="panel"
+            borderWidth="1px"
+            borderColor="app.border"
+            bg="app.surface"
+            backdropFilter="blur(18px)"
+            shadow="soft"
+            p={{ base: 5, md: 6 }}
+          >
+            <Stack gap={3}>
+              <Badge alignSelf="start" colorPalette="brand" rounded="full" px={3} py={1}>
+                Quick beer review
+              </Badge>
+              <Heading as="h1" size="xl" color="app.fg">
+                Rate a place
+              </Heading>
+              <Text color="app.muted" maxW="2xl">
+                Capture the essentials fast: a clear location, a precise rating, and optional photo proof.
               </Text>
-            </Field.Root> */}
+              <HStack gap={2} flexWrap="wrap">
+                <Badge variant="subtle" colorPalette="brand">
+                  Half-star precision
+                </Badge>
+                <Badge variant="subtle" colorPalette="brand">
+                  Optional photo
+                </Badge>
+                <Badge variant="subtle" colorPalette="brand">
+                  Nearby place matching
+                </Badge>
+              </HStack>
+            </Stack>
+          </Box>
 
-            {/* Pint Price */}
-            <Field.Root>
-              <Field.Label>Prix de la pinte</Field.Label>
-              <Input
-                type="number"
-                inputMode="decimal"
-                min="0"
-                step="0.01"
-                placeholder="Ex: 7.50"
-                value={pintPrice}
-                onChange={(e) => setPintPrice(e.target.value)}
-              />
-            </Field.Root>
+          {geoError && (
+            <Box bg="rgba(194, 59, 57, 0.08)" p={4} rounded="cloud" borderWidth="1px" borderColor="app.danger">
+              <Text color="app.danger">{geoError}</Text>
+            </Box>
+          )}
 
-            {/* Location Display */}
-            {hasValidSelectedCoordinates && (
-              <Box bg="blue.50" p={4} borderRadius="md">
-                <Text fontSize="sm" color="blue.700">
-                  📍 Location: {selectedLatitude.toFixed(6)}, {selectedLongitude.toFixed(6)}
-                </Text>
-                <Text fontSize="xs" color="blue.600" mt={1}>
-                  {selectedPlaceId
-                    ? "Coordinates set from selected bar/pub"
-                    : normalizedAutoLatitude !== null && manualCoordinates === null
-                      ? "Coordinates from device geolocation"
-                      : "Coordinates set from selected nearby place"}
-                </Text>
+          {error && (
+            <Box bg="rgba(194, 59, 57, 0.08)" p={4} rounded="cloud" borderWidth="1px" borderColor="app.danger">
+              <Text color="app.danger">{error}</Text>
+            </Box>
+          )}
+
+          <form onSubmit={handleSubmit}>
+            <Stack gap={6}>
+              <Box
+                rounded="panel"
+                borderWidth="1px"
+                borderColor="app.border"
+                bg="app.surface"
+                backdropFilter="blur(18px)"
+                shadow="soft"
+                p={{ base: 5, md: 6 }}
+              >
+                <Stack gap={4}>
+                  <Field.Root>
+                    <Field.Label>Nom du bar</Field.Label>
+                    <Input
+                      placeholder="Ex: Le Vieux Port"
+                      value={barName}
+                      maxLength={120}
+                      onChange={(event) => setBarName(event.target.value)}
+                      bg="app.surfaceSolid"
+                      borderColor="app.border"
+                    />
+                  </Field.Root>
+
+                  <Field.Root>
+                    <Field.Label>Prix de la pinte</Field.Label>
+                    <Input
+                      type="number"
+                      inputMode="decimal"
+                      min="0"
+                      step="0.01"
+                      placeholder="Ex: 7.50"
+                      value={pintPrice}
+                      onChange={(event) => setPintPrice(event.target.value)}
+                      bg="app.surfaceSolid"
+                      borderColor="app.border"
+                    />
+                  </Field.Root>
+                </Stack>
               </Box>
-            )}
 
-            {/* Submit Button */}
-            <HStack gap={3}>
-              <Button
-                flex={1}
-                variant="outline"
-                onClick={() => router.back()}
-                disabled={loading}
+              <InfoCard
+                title="Rating"
+                description="Keep the detailed scores empty if you only want to leave the overall rating."
               >
-                Cancel
-              </Button>
-              <Button
-                flex={1}
-                colorScheme="blue"
-                type={hasValidSelectedCoordinates ? "submit" : "button"}
-                onClick={() => {
-                  if (!hasValidSelectedCoordinates) {
-                    setIsLocationDialogOpen(true);
-                  }
-                }}
-                loading={loading}
-                disabled={loading}
-              >
-                {hasValidSelectedCoordinates ? "Submit" : "Next: Choose Place"}
-              </Button>
-            </HStack>
+                <SimpleGrid columns={{ base: 1, md: 2 }} gap={4}>
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Goût</Field.Label>
+                      <StarRating
+                        value={criteria.taste}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, taste: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
 
-            <Button
-              variant="outline"
-              onClick={() => setIsLocationDialogOpen(true)}
-              disabled={loading}
-            >
-              Choose or refine bar/pub location
-            </Button>
-          </Stack>
-        </form>
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Mousse</Field.Label>
+                      <StarRating
+                        value={criteria.foam}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, foam: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
 
-        <Dialog.Root
-          open={isLocationDialogOpen}
-          onOpenChange={(details) => setIsLocationDialogOpen(details.open)}
-          placement="center"
-        >
-          <Portal>
-            <Dialog.Backdrop />
-            <Dialog.Positioner>
-              <Dialog.Content>
-                <Dialog.Header>
-                  <Dialog.Title>Set your location to continue</Dialog.Title>
-                </Dialog.Header>
-                <Dialog.Body>
-                  <Text fontSize="sm" color="gray.600" mb={3}>
-                    Use geolocation if available, or pick a nearby bar/pub to set coordinates.
-                  </Text>
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Crémeuse</Field.Label>
+                      <StarRating
+                        value={criteria.creamy}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, creamy: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
 
-                  <Stack gap={2}>
-                    <Text fontSize="sm" fontWeight="semibold">
-                      Nearby bars/pubs
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Température</Field.Label>
+                      <StarRating
+                        value={criteria.temperature}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, temperature: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
+
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Présentation</Field.Label>
+                      <StarRating
+                        value={criteria.presentation}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, presentation: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
+
+                  <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                    <Field.Root>
+                      <Field.Label>Rapport qualité/prix</Field.Label>
+                      <StarRating
+                        value={criteria.valueForMoney}
+                        onChange={(value) => setCriteria((prev) => ({ ...prev, valueForMoney: value }))}
+                      />
+                    </Field.Root>
+                  </Box>
+                </SimpleGrid>
+
+                <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                  <Field.Root required>
+                    <Field.Label>
+                      Note générale <Field.RequiredIndicator />
+                    </Field.Label>
+                    <StarRating
+                      value={criteria.overall}
+                      onChange={(value) => setCriteria((prev) => ({ ...prev, overall: value }))}
+                    />
+                  </Field.Root>
+                </Box>
+              </InfoCard>
+
+              <SimpleGrid columns={{ base: 1, md: 2 }} gap={6}>
+                <InfoCard title="Photo" description="Add a quick visual if you want to preserve the pour, foam, or glass details.">
+                  <PhotoCapture onPhotoCapture={handlePhotoCapture} onClear={handleClearPhoto} />
+                </InfoCard>
+
+                <InfoCard title="Location" description="Use device geolocation or choose a nearby bar/pub to anchor the review.">
+                  {hasValidSelectedCoordinates ? (
+                    <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                      <Text fontSize="sm" color="app.fg">
+                        📍 {selectedLatitude.toFixed(6)}, {selectedLongitude.toFixed(6)}
+                      </Text>
+                      <Text fontSize="xs" color="app.muted" mt={1}>
+                        {selectedPlaceId
+                          ? "Coordinates set from selected bar/pub"
+                          : normalizedAutoLatitude !== null && manualCoordinates === null
+                            ? "Coordinates from device geolocation"
+                            : "Coordinates set from selected nearby place"}
+                      </Text>
+                    </Box>
+                  ) : (
+                    <Box rounded="cloud" borderWidth="1px" borderColor="app.border" bg="app.surfaceSolid" p={4}>
+                      <Text fontSize="sm" color="app.muted">
+                        No location is locked yet. Open the place picker to continue.
+                      </Text>
+                    </Box>
+                  )}
+
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsLocationDialogOpen(true)}
+                    disabled={loading}
+                    borderColor="app.border"
+                    bg="app.surfaceSolid"
+                    justifyContent="space-between"
+                  >
+                    Choose or refine bar/pub location
+                  </Button>
+                </InfoCard>
+              </SimpleGrid>
+
+              <HStack gap={3} justify="stretch" flexWrap="wrap">
+                <Button
+                  flex={1}
+                  variant="outline"
+                  onClick={() => router.back()}
+                  disabled={loading}
+                  borderColor="app.border"
+                  bg="app.surface"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  flex={1}
+                  colorPalette="brand"
+                  type={hasValidSelectedCoordinates ? "submit" : "button"}
+                  onClick={() => {
+                    if (!hasValidSelectedCoordinates) {
+                      setIsLocationDialogOpen(true);
+                    }
+                  }}
+                  loading={loading}
+                  disabled={loading}
+                >
+                  {hasValidSelectedCoordinates ? "Submit review" : "Next: Choose place"}
+                </Button>
+              </HStack>
+            </Stack>
+          </form>
+
+          <Dialog.Root
+            open={isLocationDialogOpen}
+            onOpenChange={(details) => setIsLocationDialogOpen(details.open)}
+            placement="center"
+          >
+            <Portal>
+              <Dialog.Backdrop />
+              <Dialog.Positioner>
+                <Dialog.Content bg="app.surfaceSolid" borderColor="app.border" shadow="lifted" rounded="3xl">
+                  <Dialog.Header>
+                    <Dialog.Title>Set your location to continue</Dialog.Title>
+                  </Dialog.Header>
+                  <Dialog.Body>
+                    <Text fontSize="sm" color="app.muted" mb={3}>
+                      Use geolocation if available, or pick a nearby bar/pub to set coordinates.
                     </Text>
 
-                    {!selectedLatitude || !selectedLongitude ? (
-                      <Text fontSize="sm" color="gray.600">
-                        Geolocation is required to list nearby bars/pubs. Enable location access, then reopen this dialog.
+                    <Stack gap={3}>
+                      <Text fontSize="sm" fontWeight="semibold" color="app.fg">
+                        Nearby bars/pubs
                       </Text>
-                    ) : null}
 
-                    {loadingNearbyPlaces && (
-                      <HStack>
-                        <Spinner size="sm" color="blue.500" />
-                        <Text fontSize="sm" color="gray.600">Loading nearby bars and pubs...</Text>
-                      </HStack>
-                    )}
+                      {selectedLatitude === null || selectedLongitude === null ? (
+                        <Text fontSize="sm" color="app.muted">
+                          Geolocation is required to list nearby bars/pubs. Enable location access, then reopen this dialog.
+                        </Text>
+                      ) : null}
 
-                    {nearbyPlacesError && (
-                      <Text fontSize="sm" color="red.600">{nearbyPlacesError}</Text>
-                    )}
+                      {loadingNearbyPlaces && (
+                        <HStack>
+                          <Spinner size="sm" color="brand.500" />
+                          <Text fontSize="sm" color="app.muted">
+                            Loading nearby bars and pubs...
+                          </Text>
+                        </HStack>
+                      )}
 
-                    {!loadingNearbyPlaces && !nearbyPlacesError && nearbyPlaces.length === 0 && (
-                      <Text fontSize="sm" color="gray.600">
-                        No nearby bar/pub found around your current location.
-                      </Text>
-                    )}
+                      {nearbyPlacesError && <Text fontSize="sm" color="app.danger">{nearbyPlacesError}</Text>}
 
-                    {!loadingNearbyPlaces && nearbyPlaces.length > 0 && (
-                      <Stack gap={2} maxH="48" overflowY="auto" pr={1}>
-                        {nearbyPlaces.slice(0, 8).map((place) => (
-                          <Button
-                            key={place.id}
-                            variant={selectedPlaceId === place.id ? "solid" : "outline"}
-                            justifyContent="space-between"
-                            onClick={() => {
-                              setSelectedPlaceId(place.id);
-                              setManualCoordinates({ latitude: place.lat, longitude: place.lon });
-                              setBarName((prev) => (prev.trim().length > 0 ? prev : place.name));
-                            }}
-                          >
-                            <Text truncate>{place.name}</Text>
-                            <Text fontSize="xs" color={selectedPlaceId === place.id ? "white" : "gray.600"}>
-                              {Math.round(place.distance)}m
-                            </Text>
-                          </Button>
-                        ))}
-                      </Stack>
-                    )}
-                  </Stack>
-                </Dialog.Body>
-                <Dialog.Footer>
-                  <Button variant="outline" onClick={() => setIsLocationDialogOpen(false)}>
-                    Cancel
-                  </Button>
-                  <Button
-                    colorScheme="blue"
-                    onClick={() => setIsLocationDialogOpen(false)}
-                    disabled={!hasValidSelectedCoordinates}
-                  >
-                    Use this location
-                  </Button>
-                </Dialog.Footer>
-                <Dialog.CloseTrigger />
-              </Dialog.Content>
-            </Dialog.Positioner>
-          </Portal>
-        </Dialog.Root>
-      </Stack>
-    </Container>
+                      {!loadingNearbyPlaces && !nearbyPlacesError && nearbyPlaces.length === 0 && (
+                        <Text fontSize="sm" color="app.muted">
+                          No nearby bar/pub found around your current location.
+                        </Text>
+                      )}
+
+                      {!loadingNearbyPlaces && nearbyPlaces.length > 0 && (
+                        <Stack gap={2} maxH="48" overflowY="auto" pr={1}>
+                          {nearbyPlaces.slice(0, 8).map((place) => {
+                            const isSelected = selectedPlaceId === place.id;
+
+                            return (
+                              <Button
+                                key={place.id}
+                                variant={isSelected ? "solid" : "outline"}
+                                colorPalette="brand"
+                                justifyContent="space-between"
+                                borderColor="app.border"
+                                bg={isSelected ? undefined : "app.surface"}
+                                onClick={() => {
+                                  setSelectedPlaceId(place.id);
+                                  setManualCoordinates({ latitude: place.lat, longitude: place.lon });
+                                  setBarName((prev) => (prev.trim().length > 0 ? prev : place.name));
+                                }}
+                              >
+                                <Text truncate>{place.name}</Text>
+                                <Text fontSize="xs" color={isSelected ? "app.accentFg" : "app.muted"}>
+                                  {Math.round(place.distance)}m
+                                </Text>
+                              </Button>
+                            );
+                          })}
+                        </Stack>
+                      )}
+                    </Stack>
+                  </Dialog.Body>
+                  <Dialog.Footer>
+                    <Button variant="outline" onClick={() => setIsLocationDialogOpen(false)} borderColor="app.border">
+                      Cancel
+                    </Button>
+                    <Button
+                      colorPalette="brand"
+                      onClick={() => setIsLocationDialogOpen(false)}
+                      disabled={!hasValidSelectedCoordinates}
+                    >
+                      Use this location
+                    </Button>
+                  </Dialog.Footer>
+                  <Dialog.CloseTrigger />
+                </Dialog.Content>
+              </Dialog.Positioner>
+            </Portal>
+          </Dialog.Root>
+        </Stack>
+      </Container>
+    </Box>
   );
 }

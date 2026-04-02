@@ -1,34 +1,28 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html,
+body {
+  min-height: 100%;
+  background-color: #f6f0e7;
+  color: #24190e;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-image:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.7), transparent 38%),
+    radial-gradient(circle at 88% 8%, rgba(248, 192, 115, 0.18), transparent 30%),
+    linear-gradient(180deg, #fbf7f0 0%, #f6f0e7 38%, #f2eadf 100%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: #f0aa4a;
+  color: #271500;
 }
 
 
 #map-container {
   height: 100%;
   width: 100%;
-  /* temporarily set the background color so we can tell where the map container is positioned */
   background-color: lightgrey;
 }

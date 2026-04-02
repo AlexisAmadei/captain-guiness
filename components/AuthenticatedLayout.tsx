@@ -3,7 +3,6 @@
 import { Box, Stack } from "@chakra-ui/react";
 import { ReactNode } from "react";
 import { AppBar } from "./AppBar";
-import { BottomNavigation } from "./BottomNavigation";
 
 type AuthenticatedLayoutProps = {
   children: ReactNode;
@@ -24,13 +23,10 @@ export function AuthenticatedLayout({
         flex={1}
         overflowY="auto"
         pb="16"
-        bg="gray.50"
+        bg="app.canvas"
       >
         {children}
       </Box>
-
-      {/* Bottom Navigation */}
-      <BottomNavigation />
     </Stack>
   );
 }

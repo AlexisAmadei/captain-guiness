@@ -55,8 +55,10 @@ export function StarRating({
         <Icon
           as={Star}
           boxSize={size}
-          color={isFilled ? "yellow.400" : "gray.300"}
+          color={isFilled ? "brand.500" : "app.border"}
           fill={isFilled ? "currentColor" : "transparent"}
+          transition="transform 0.15s ease, color 0.15s ease"
+          _hover={{ transform: "translateY(-1px) scale(1.03)" }}
         />
       </div>
     );
