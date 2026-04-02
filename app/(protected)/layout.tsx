@@ -19,10 +19,12 @@ export default async function ProtectedLayout({
   }
 
   return (
-    <>
+    <div style={{ minHeight: "100dvh", display: "flex", flexDirection: "column" }}>
       <AppBar />
-      {children}
+      <main style={{ flex: 1, paddingBottom: "calc(4rem + env(safe-area-inset-bottom))" }}>
+        {children}
+      </main>
       <BottomNavigation />
-    </>
+    </div>
   );
 }
