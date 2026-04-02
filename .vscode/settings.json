@@ -10,6 +10,20 @@
         "claude-code/claude-sonnet-4.5",
         "claude-code/claude-sonnet-4.6"
       ]
+    },
+    "captain-guiness/.vscode/mcp.json: mapbox-mcp": {
+      "allowedModels": [
+        "copilot/auto",
+        "copilotcli/claude-sonnet-4.5",
+        "copilotcli/claude-haiku-4.5",
+        "claude-code/claude-haiku-4.5",
+        "copilot/claude-haiku-4.5",
+        "copilotcli/claude-opus-4.5",
+        "anthropic/Anthropic - Perso/claude-opus-4-6",
+        "copilotcli/claude-sonnet-4",
+        "anthropic/Anthropic - Perso/claude-sonnet-4-5-20250929",
+        "anthropic/Anthropic - Perso/claude-sonnet-4-6"
+      ]
     }
   },
   "editor.tabSize": 2
